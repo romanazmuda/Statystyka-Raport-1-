@@ -1,0 +1,193 @@
+---
+title: "Raport 1 "
+author: "Romana Żmuda"
+date: "1 04 2020"
+output:
+  pdf_document:
+    fig_height: 6
+    fig_width: 7
+
+---
+
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+library(knitr)
+library(dplyr)
+library(gmodels)
+
+
+datapath<-"C:\\Users\\roman\\Documents\\R\\Stata"
+safepath<-"C:\\Users\\roman\\Documents\\R\\Stata"
+```
+
+## Wprowadzenie zmiennych z pliku dane1.txt do Tabeli "Moje Dane", jak również poprawne ustawienie i nazwanie zmiennych.
+```{r, echo=TRUE}
+setwd(datapath)
+MojeDane<-read.table("dane1.txt",skip = '13' ,blank.lines.skip = TRUE, fill = TRUE, header = FALSE)
+colnames(MojeDane)<-c('edukacja','miejscezam','płeć','doświadczenie','związek','zarobki','wiek','rasa','praca','sektor','stancyw')
+```
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+MojeDane <- mutate(MojeDane, wykszt = as.numeric(edukacja>8) + as.numeric(edukacja>12) + 1)
+kursDolara <- 4.03
+MojeDane <- mutate(MojeDane, pensja = kursDolara*zarobki) 
+```
+
+## Zadanie 1 
+
+
+W tej sekcji mamy do analizy dane z tabeli Moje Dane o nazwie typ, w której to przenalizowałam 6 typów zawodów. Następnie na wykresie kołowym umieściłam dane procentowe, jak również nazwy 6 zawodów: kierownik, sprzedawca/marketing, urzędnik, obsługa, wolny zawód, inne.
+
+```{r zad1,echo=FALSE}
+a<-which(MojeDane$praca=="6")
+praca6<-length(a)
+
+b<-which(MojeDane$praca=="5")
+praca5<-length(b)
+
+c<-which(MojeDane$praca=="4")
+praca4<-length(c)
+
+d<-which(MojeDane$praca=="3")
+praca3<-length(d)
+
+e<-which(MojeDane$praca=="2")
+praca2<-length(e)
+
+f<-which(MojeDane$praca=="1")
+praca1<-length(f)
+``` 
+Po wstępnej analizie danych widzimy, jak rozkłada się ilościowy podział (534 osoób) na konkretne zawody: `r praca1` kiernownik, `r praca2` sprzedawca, `r praca3` urzędnik, `r praca4` obsługa, `r praca5` wolny zawód, `r praca6` inne.
+Wykres kołowy prezentujący procentowy udział każdego z zawodów.
+```{r,echo=TRUE}
+zawody<-c(praca1,praca2,praca3,praca4,praca5,praca6)
+suma_zawody<-sum(zawody)
+procenty_zawody<-round(100*zawody/suma_zawody,1)
+labels<-c("Kierownik","Sprzedawca","Urzędnik","Obsługa","Wolny zawód","Inne")
+labels<-paste(labels,procenty_zawody)
+labels<-paste(labels,"%", sep="")
+pie(table(MojeDane$praca),labels=labels,main="Rozkład Zawodów")
+
+```
+
+
+## Zadanie 2
+
+Tabela odpowiednich wartości dla danych pensja, czyli : minimum, pierwszy kwantyl, mediana, średnia, trzeci kwantyl, maksimum.
+
+```{r zad2, echo=TRUE}
+pensja_wartosci<-select(MojeDane,pensja)
+summary(pensja_wartosci)
+
+```
+
+## Zadanie 3
+W tym zadaniu mamy do przeanalizowania dane z kolumny wykształcenie, które dzieli się na 3 podgrupy:
+<br/>
+1. Osoba ucząca się do 8 lat.
+<br/>
+2.Osoba ucząca się od 8 do 12 lat.
+<br/>
+3.Osoba ucząca się ponad 12 lat.
+<br/>
+<br/>
+Jak również korelację między wykształceniem, a pensją.
+<br/>
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+edukacja_A<-MojeDane %>% select(edukacja,pensja)
+edukacja_A <- mutate(edukacja_A, wykszt = as.numeric(edukacja>8) + as.numeric(edukacja>12) + 1)
+edukacja_1<-edukacja_A[edukacja_A$edukacja<=8,]
+edukacja_2<-edukacja_A[edukacja_A$edukacja>8&edukacja_A$edukacja<=12,]
+edukacja_3<-edukacja_A[edukacja_A$edukacja>12,]
+
+edukacja_1_P<-select(edukacja_1,pensja)
+edukacja_2_P<-select(edukacja_2,pensja)
+edukacja_3_P<-select(edukacja_3,pensja)
+```
+Tabela odpowiednich wartości dla danych  wykształcenie po odpowiednim podziale, czyli : minimum, pierwszy kwantyl, mediana, średnia, trzeci kwantyl, maksimum.
+```{r zad3,echo=TRUE}
+edu_1<-summary(edukacja_1_P)
+edu_2<-summary(edukacja_2_P)
+edu_3<-summary(edukacja_3_P)
+total<-cbind(edu_1,edu_2,edu_3)
+colnames(total)<-c('edukacja<=8','8<edukacja<=12','edukacja>12')
+total
+
+```
+
+
+```{r zad33,echo=TRUE}
+wyksz_pensja<-MojeDane %>% select(wykszt,pensja)
+boxplot(pensja ~ wykszt, data = wyksz_pensja, xlab = "Poziom wykształcenia",
+        ylab = "Pensja", main = "Zależność pensji od poziomu wykształcenia")
+```
+
+Zauważmy, iż pensja rośnie wraz z poziomem edukacji, jak również rośnie zakres kwotowy zarobków, więc istnieją spore dysproporcje w średnich zarobkach. Jeśli uczyliśmy się do 8 lat to zarabiamy podobnie w całej naszej grupie, a samo odchylenie nie odbiega od normy. Największe różnice są gdy przekroczymy 12 lat nauki, wtedy istnieje spora szansa wysokich zarobków., jednak spora grupa zarabia poniżej średniej.
+<br/>
+<br/>
+## Zadanie 4
+```{r zad4, echo=TRUE}
+
+d<-CrossTable(MojeDane$rasa, MojeDane$wykszt, expected = FALSE)
+e<-CrossTable(MojeDane$rasa, MojeDane$wykszt, expected=FALSE, prop.r=FALSE, prop.c=FALSE,
+              prop.t=TRUE, prop.chisq=FALSE, chisq = FALSE, fisher=FALSE, mcnemar=FALSE,
+              resid=FALSE, sresid=FALSE, asresid=FALSE,
+              missing.include=FALSE,format=c("SAS","SPSS"))
+```
+W Pivocie zsumowano liczbę osób różnych nacji z stosunku z poziomem edukacji, w każdej komórce umieszczono odpowiednie podsumowania. W drugiej tabeli mamy samą wartość procentową sumującą się do jedynki, więc aby uzyskać procentowy udział należy pomnożyć razy 100.
+
+## Zadanie 5
+ Narysowałam  histogram dla próby losowej rozmiaru n = 1000 z rozkładu N(0,1), umieszczając na nim także wykres gęstości tego rozkładu
+ 
+ 
+ 
+```{r zad5, echo=FALSE}
+x<-rnorm(1000)
+
+hist(x,main="Rozkład normalny w próbie n = 1000",
+     freq = FALSE, breaks = 70)
+lines(density(x), 
+      lwd = 2, 
+      col = "chocolate3")
+```
+Jednak ten wykres nie przybliża najlepiej dlatego obliczamy liczbę klas według reguły Freedmana-Diaconisa
+
+
+```{r zad55, echo=TRUE}
+max<-max(x)
+min<-min(x)
+iqr<-IQR(x) # obliczanie mianownika, czyli funkcję h
+liczba_klas<-ceiling(((max - min)*(1000)^(1/3))/2*iqr) # liczba klas, 
+#czyli na ile podzielić rozkład,
+#aby był zbliżony do rozkładu normalnego
+hist(x,main="Rozkład normalny w próbie n = 1000 z regułą Freedmana-Diaconis'a",
+     freq = FALSE, breaks = liczba_klas)
+```
+
+## Zadanie 6
+Rozkład pensji:
+```{r zad6,echo=TRUE}
+hist(MojeDane$pensja,main="Histogram prawdopodobieństwa pensji",
+     xlab="Pensja",freq = FALSE,xlim=c(0,200),col="pink")
+```
+
+## Zadanie 7
+
+```{r zad7, echo=TRUE}
+k<-rgamma(100000, shape=4.35, scale =9)
+hist(MojeDane$pensja,main="Histogram prawdopodobieństwa pensji",
+     xlab="Pensja",freq = FALSE,xlim=c(0,200),col="pink")
+lines(density(k), 
+      lwd = 2)
+```
+
+Po obserwacji wykresu z zadania 6 możemy zauważyć, że histogram przypomina rozkład gammę. Po pewnych próbach mogłam ustalić wartości alfy oraz bety są one odpowiednio równe:
+
+1. $\alpha = shape = 4.35$
+
+2. $\beta = \frac{1}{scale} =0.(1)$
+ 
